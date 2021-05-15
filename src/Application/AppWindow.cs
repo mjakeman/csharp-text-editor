@@ -16,6 +16,8 @@ namespace Bluetype.Application
 
         public Document Document { get; set; }
 
+        string cachedDocContents = string.Empty;
+
         public AppWindow()
         {
             this.DefaultWidth = 800;
@@ -44,6 +46,7 @@ namespace Bluetype.Application
 
             // Index to insert
             spinButton = SpinButton.NewWithRange(0, Int32.MaxValue, 1);
+            spinButton.OnValueChanged += (_,_) => UpdateCursor();
             spinButton.SetDigits(0);
             hbox.PackStart(spinButton, false, false, 0);
 
@@ -54,11 +57,19 @@ namespace Bluetype.Application
 
             // Start by creating a document
             Document = Document.NewFromString("The quick brown fox jumps over the lazy dog.");
-            label.LabelProp = Document.GetContents();
+            cachedDocContents = Document.GetContents();
+            label.SetText(cachedDocContents);
+            UpdateCursor();
 
             // Set visible
             headerBar.ShowAll();
             contentBox.ShowAll();
+        }
+
+        void UpdateCursor()
+        {
+            var value = Math.Clamp((int)spinButton.GetValue(), 0, cachedDocContents.Length);
+            label.SetText(cachedDocContents.Insert(value, "|"));
         }
 
         void Insert(Button button, EventArgs args)
@@ -68,7 +79,9 @@ namespace Bluetype.Application
             Document.Insert((int)index, text);
 
             // Update label
-            label.SetText(Document.GetContents());
+            cachedDocContents = Document.GetContents();
+            label.SetText(cachedDocContents);
+            UpdateCursor();
         }
     }
 }
