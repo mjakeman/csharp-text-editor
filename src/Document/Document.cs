@@ -21,8 +21,8 @@ namespace Bluetype.Document
 
         private LinkedList<Descriptor> _pieceTable = new();
 
-        private readonly string _file;
-        private string _add;
+        private ReadOnlyBuffer fileBuffer;
+        private AppendBuffer addBuffer;
 
         private (LinkedListNode<Descriptor> desc, int baseIndex) FromIndex(int index)
         {
@@ -44,14 +44,16 @@ namespace Bluetype.Document
             return (null, -1); // throw new IndexOutOfRangeException();
         }
 
+        private Buffer GetBuffer(bool isAddBuffer)
+            => isAddBuffer ? (Buffer)addBuffer : (Buffer)fileBuffer;
+
         public string GetContents()
         {
             var builder = new StringBuilder();
             foreach (Descriptor piece in _pieceTable)
             {
-                var text = piece.addBuffer
-                    ? _add.Substring(piece.offset, piece.length)
-                    : _file.Substring(piece.offset, piece.length);
+                var text = GetBuffer(piece.addBuffer)
+                    .GetString(piece.offset, piece.length);
 
                 builder.Append(text);
             }
@@ -68,11 +70,9 @@ namespace Bluetype.Document
                 throw new IndexOutOfRangeException();
 
             // TODO: Use a better buffer data structure?
-            var newOffset = _add.Length;
             var newLength = text.Length;
-            
+            var newOffset = addBuffer.Append(text);
             var newDesc = new Descriptor(true, newOffset, newLength);
-            _add += text;
 
             var (existingPieceNode, baseIndex) = FromIndex(index);
 
@@ -153,8 +153,8 @@ namespace Bluetype.Document
 
                     // Create new
                     var newLength = deleteStartDesc.length - length - internalOffset;
-                    var newDesc = new Descriptor(true, _add.Length, newLength);
-                    _add += (deleteStartDesc.addBuffer ? _add : _file).Substring(internalOffset + length, newLength);
+                    var addOffset = addBuffer.Append(GetBuffer(deleteStartDesc.addBuffer).GetString(internalOffset + length, newLength));
+                    var newDesc = new Descriptor(true, addOffset, newLength);
                     _pieceTable.AddAfter(deleteStartDescNode, newDesc);
                 }
             }
@@ -168,8 +168,8 @@ namespace Bluetype.Document
         private Document(string data)
         {
             // Initialise
-            _file = data;
-            _add = string.Empty;
+            fileBuffer = new ReadOnlyBuffer(data);
+            addBuffer = new AppendBuffer();
             _pieceTable = new();
 
             _pieceTable.AddFirst(new Descriptor(false, 0, data.Length));
