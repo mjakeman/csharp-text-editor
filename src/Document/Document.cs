@@ -21,14 +21,14 @@ namespace Bluetype.Document
         private ReadOnlyBuffer fileBuffer;
         private AppendBuffer addBuffer;
 
-        private (Descriptor desc, int baseIndex) FromIndex(int index)
+        private (Span desc, int baseIndex) FromIndex(int index)
         {
             if (index < 0)
                 throw new ArgumentOutOfRangeException();
 
             var curIndex = 0;
 
-            foreach (Descriptor span in pieceTable)
+            foreach (Span span in pieceTable)
             {
                 curIndex += span.length;
 
@@ -41,79 +41,82 @@ namespace Bluetype.Document
             return (null, -1); // throw new IndexOutOfRangeException();
         }
 
-        private Buffer GetBuffer(Descriptor span)
+        private Buffer GetBuffer(Span span)
             => span.dest == BufferType.AddBuffer
                 ? (Buffer)addBuffer
                 : (Buffer)fileBuffer;
 
-        private string DescriptorToString(Descriptor span)
+        private string DescriptorToString(Span span)
             => GetBuffer(span).GetString(span.offset, span.length);
 
         public string GetContents()
         {
             var builder = new StringBuilder();
-            foreach (Descriptor piece in pieceTable)
+            foreach (Span piece in pieceTable)
                 builder.Append(DescriptorToString(piece));
 
             return builder.ToString();
         }
 
+        private Span CreateSpan(string text)
+        {
+            var index = addBuffer.Append(text);
+            return new Span(BufferType.AddBuffer, index, text.Length);
+        }
+
         public void Insert(int index, string text)
         {
-            if (text.Length == 0)
+            if (string.IsNullOrEmpty(text))
                 return;
 
             if (index < 0)
                 throw new IndexOutOfRangeException();
 
-            var newLength = text.Length;
-            var newOffset = addBuffer.Append(text);
-            var newDesc = new Descriptor(BufferType.AddBuffer, newOffset, newLength);
+            // Create a new entry into the add buffer
+            var insertSpan = CreateSpan(text);
 
-            var (existingDesc, baseIndex) = FromIndex(index);
+            // Find the piece which contains the cursor index
+            var (currentSpan, baseIndex) = FromIndex(index);
+            
 
-            if (existingDesc == null)
+            // Case 1: If the current span is null, append to the end
+            // of the document and return.
+            if (currentSpan == null)
             {
-                // Node is null - assume we're appending to the end
-                pieceTable.AddLast(newDesc);
+                pieceTable.AddLast(insertSpan);
                 return;
             }
 
-            // If we are at a piece boundary, we can simply
+            // Case 2: If we are at the start boundary, we can simply
             // insert at the beginning and return.
-            if (index == existingDesc.offset)
+            else if (index - baseIndex == 0)
             {
-                pieceTable.AddBefore(existingDesc, newDesc);
+                pieceTable.AddBefore(currentSpan, insertSpan);
                 return;
             }
 
-            // We split the above piece into three, for the
-            // first part, the newly inserted part, and the
-            // remaning last part.
-
-            // Find the point within the piece in which to split
-            var insertionOffset = index - baseIndex;
-
-            // Calculate new size/offset for start and end pieces
-            var startLength = insertionOffset;
-            var endLength = existingDesc.length - startLength;
-            var endOffset = startLength;
-
-            if (endLength != 0)
-            {
-                var endDesc = new Descriptor(existingDesc.dest, endOffset, endLength);
-                pieceTable.AddAfter(existingDesc, endDesc);
-            }
-                
-            pieceTable.AddAfter(existingDesc, newDesc);
-
-            // Finally: resize the existing piece to go up until the
-            // point of insertion, or alternatively, remove the piece if
-            // length is zero.
-            if (insertionOffset != 0)
-                pieceTable.Replace(existingDesc, existingDesc with { length = startLength });
+            // Case 3: We split the current span into three. The contents of the
+            // span up to the insertion point, the insertion itself, and
+            // the remainder of the span after the insertion.
             else
-                pieceTable.Remove(existingDesc);
+            {
+                // Find the index at which to split, relative to the
+                // start of the current piece.
+                var insertionOffset = index - baseIndex;
+
+                // We have one piece |current|
+                var startLength = insertionOffset;
+                var endLength = currentSpan.length - startLength;
+
+                // Split into |start| |end|
+                var startSpan = currentSpan with {length = startLength};
+                var endSpan = currentSpan with {length = endLength, offset = startLength};
+
+                // Insert so we have three pieces: |start| |insertion| |end|
+                pieceTable.AddAfter(currentSpan, endSpan);
+                pieceTable.AddAfter(currentSpan, insertSpan);
+                pieceTable.Replace(currentSpan, startSpan);
+            }
         }
 
         public void Delete(int index, int length)
@@ -142,7 +145,7 @@ namespace Bluetype.Document
                     // Create new
                     var newLength = deleteStartDesc.length - length - internalOffset;
                     var addOffset = addBuffer.Append(GetBuffer(deleteStartDesc).GetString(internalOffset + length, newLength));
-                    var newDesc = new Descriptor(BufferType.AddBuffer, addOffset, newLength);
+                    var newDesc = new Span(BufferType.AddBuffer, addOffset, newLength);
                     pieceTable.AddAfter(deleteStartDesc, newDesc);
 
                     // Resize original
@@ -164,7 +167,7 @@ namespace Bluetype.Document
             addBuffer = new AppendBuffer();
             pieceTable = new();
 
-            pieceTable.AddFirst(new Descriptor(BufferType.FileBuffer, 0, data.Length));
+            pieceTable.AddFirst(new Span(BufferType.FileBuffer, 0, data.Length));
         }
 
         public static Document New() => new Document(string.Empty);

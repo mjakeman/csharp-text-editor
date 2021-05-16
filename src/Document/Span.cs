@@ -11,6 +11,6 @@ namespace Bluetype.Document
         AddBuffer
     };
 
-    // Also called: Piece, Span, etc
-    public record Descriptor(BufferType dest, int offset, int length);
+    // Also called: Piece, Descriptor, etc
+    public record Span(BufferType dest, int offset, int length);
 }
