@@ -50,10 +50,15 @@ namespace Bluetype.Application
             spinButton.SetDigits(0);
             hbox.PackStart(spinButton, false, false, 0);
 
-            var button = new Button("Insert");
-            button.Label = "Insert"; // <-- TODO: While construct args are broken
-            button.OnClicked += Insert;
-            hbox.PackEnd(button, false, false, 0);
+            var insertButton = new Button("Insert");
+            insertButton.Label = "Insert"; // <-- TODO: While construct args are broken
+            insertButton.OnClicked += Insert;
+            hbox.PackEnd(insertButton, false, false, 0);
+
+            var deleteButton = new Button("Delete");
+            deleteButton.Label = "Delete"; // <-- TODO: While construct args are broken
+            deleteButton.OnClicked += Delete;
+            hbox.PackEnd(deleteButton, false, false, 0);
 
             // Start by creating a document
             Document = Document.NewFromString("The quick brown fox jumps over the lazy dog.");
@@ -78,6 +83,20 @@ namespace Bluetype.Application
             var text = insertEntry.GetText();
             Document.Insert((int)index, text);
 
+            // Move cursor to end of insertion
+            spinButton.Value += text.Length;
+
+            // Update label
+            cachedDocContents = Document.GetContents();
+            label.SetText(cachedDocContents);
+            UpdateCursor();
+        }
+
+        void Delete(Button button, EventArgs args)
+        {
+            var index = (int)spinButton.GetValue();
+            Document.Delete(index, 1);
+            
             // Update label
             cachedDocContents = Document.GetContents();
             label.SetText(cachedDocContents);

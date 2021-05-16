@@ -122,6 +122,49 @@ namespace Bluetype.Document
                 _pieceTable.Remove(existingDesc);
         }
 
+        public void Delete(int index, int length)
+        {
+
+            var (deleteStartDescNode, deleteStartNodeBaseIndex) = FromIndex(index);
+
+            // Cannot delete from the end of the sequence
+            if (deleteStartDescNode == null)
+                return;
+
+            Descriptor deleteStartDesc = deleteStartDescNode.Value;
+
+            if (length < deleteStartDesc.length)
+            {
+                var internalOffset = index - deleteStartNodeBaseIndex;
+                if (internalOffset == 0)
+                {
+                    // Simple case
+                    var newLength = (deleteStartDesc.length - length);
+                    var newOffset = deleteStartDesc.offset + length;
+                    deleteStartDescNode.Value = deleteStartDesc with { offset = newOffset, length = newLength};
+                }
+                else
+                {
+                    // Split into two
+
+                    // Resize original
+                    var resizeLength = internalOffset;
+                    deleteStartDescNode.Value = deleteStartDesc with { length = resizeLength};
+
+                    // Create new
+                    var newLength = deleteStartDesc.length - length - internalOffset;
+                    var newDesc = new Descriptor(true, _add.Length, newLength);
+                    _add += (deleteStartDesc.addBuffer ? _add : _file).Substring(internalOffset + length, newLength);
+                    _pieceTable.AddAfter(deleteStartDescNode, newDesc);
+                }
+            }
+            else
+            {
+                // Complex case - not supported yet
+                throw new NotImplementedException("Cannot delete across piece boundaries yet");
+            }
+        }
+
         private Document(string data)
         {
             // Initialise
