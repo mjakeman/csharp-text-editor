@@ -16,27 +16,24 @@ namespace Bluetype.Document
         // This paper demonstrates the piece-table based data structure used to store the
         // document's text and subsequent modifications.
 
-        // Also called: Piece, Span, etc
-        public record Descriptor(bool addBuffer, int offset, int length);
-
-        private LinkedList<Descriptor> _pieceTable = new();
+        private PieceTable pieceTable;
 
         private ReadOnlyBuffer fileBuffer;
         private AppendBuffer addBuffer;
 
-        private (LinkedListNode<Descriptor> desc, int baseIndex) FromIndex(int index)
+        private (Descriptor desc, int baseIndex) FromIndex(int index)
         {
             if (index < 0)
                 throw new ArgumentOutOfRangeException();
 
             var curIndex = 0;
 
-            for (var desc = _pieceTable.First; desc != null; desc = desc.Next)
+            foreach (Descriptor span in pieceTable)
             {
-                curIndex += desc.Value.length;
+                curIndex += span.length;
 
                 if (curIndex > index)
-                    return (desc, curIndex - desc.Value.length);
+                    return (span, curIndex - span.length);
             }
 
             // We might be the final element -> in which case, create a new descriptor?
@@ -44,19 +41,19 @@ namespace Bluetype.Document
             return (null, -1); // throw new IndexOutOfRangeException();
         }
 
-        private Buffer GetBuffer(bool isAddBuffer)
-            => isAddBuffer ? (Buffer)addBuffer : (Buffer)fileBuffer;
+        private Buffer GetBuffer(Descriptor span)
+            => span.dest == BufferType.AddBuffer
+                ? (Buffer)addBuffer
+                : (Buffer)fileBuffer;
+
+        private string DescriptorToString(Descriptor span)
+            => GetBuffer(span).GetString(span.offset, span.length);
 
         public string GetContents()
         {
             var builder = new StringBuilder();
-            foreach (Descriptor piece in _pieceTable)
-            {
-                var text = GetBuffer(piece.addBuffer)
-                    .GetString(piece.offset, piece.length);
-
-                builder.Append(text);
-            }
+            foreach (Descriptor piece in pieceTable)
+                builder.Append(DescriptorToString(piece));
 
             return builder.ToString();
         }
@@ -69,27 +66,24 @@ namespace Bluetype.Document
             if (index < 0)
                 throw new IndexOutOfRangeException();
 
-            // TODO: Use a better buffer data structure?
             var newLength = text.Length;
             var newOffset = addBuffer.Append(text);
-            var newDesc = new Descriptor(true, newOffset, newLength);
+            var newDesc = new Descriptor(BufferType.AddBuffer, newOffset, newLength);
 
-            var (existingPieceNode, baseIndex) = FromIndex(index);
+            var (existingDesc, baseIndex) = FromIndex(index);
 
-            if (existingPieceNode == null)
+            if (existingDesc == null)
             {
                 // Node is null - assume we're appending to the end
-                _pieceTable.AddLast(newDesc);
+                pieceTable.AddLast(newDesc);
                 return;
             }
-
-            Descriptor existingDesc = existingPieceNode.Value;
 
             // If we are at a piece boundary, we can simply
             // insert at the beginning and return.
             if (index == existingDesc.offset)
             {
-                _pieceTable.AddBefore(existingPieceNode, newDesc);
+                pieceTable.AddBefore(existingDesc, newDesc);
                 return;
             }
 
@@ -107,31 +101,29 @@ namespace Bluetype.Document
 
             if (endLength != 0)
             {
-                var endDesc = new Descriptor(existingDesc.addBuffer, endOffset, endLength);
-                _pieceTable.AddAfter(existingPieceNode, endDesc);
+                var endDesc = new Descriptor(existingDesc.dest, endOffset, endLength);
+                pieceTable.AddAfter(existingDesc, endDesc);
             }
                 
-            _pieceTable.AddAfter(existingPieceNode, newDesc);
+            pieceTable.AddAfter(existingDesc, newDesc);
 
             // Finally: resize the existing piece to go up until the
             // point of insertion, or alternatively, remove the piece if
             // length is zero.
             if (insertionOffset != 0)
-                existingPieceNode.Value = existingDesc with { length = startLength };
+                pieceTable.Replace(existingDesc, existingDesc with { length = startLength });
             else
-                _pieceTable.Remove(existingDesc);
+                pieceTable.Remove(existingDesc);
         }
 
         public void Delete(int index, int length)
         {
 
-            var (deleteStartDescNode, deleteStartNodeBaseIndex) = FromIndex(index);
+            var (deleteStartDesc, deleteStartNodeBaseIndex) = FromIndex(index);
 
             // Cannot delete from the end of the sequence
-            if (deleteStartDescNode == null)
+            if (deleteStartDesc == null)
                 return;
-
-            Descriptor deleteStartDesc = deleteStartDescNode.Value;
 
             if (length < deleteStartDesc.length)
             {
@@ -141,21 +133,21 @@ namespace Bluetype.Document
                     // Simple case
                     var newLength = (deleteStartDesc.length - length);
                     var newOffset = deleteStartDesc.offset + length;
-                    deleteStartDescNode.Value = deleteStartDesc with { offset = newOffset, length = newLength};
+                    pieceTable.Replace(deleteStartDesc, deleteStartDesc with { offset = newOffset, length = newLength});
                 }
                 else
                 {
                     // Split into two
 
-                    // Resize original
-                    var resizeLength = internalOffset;
-                    deleteStartDescNode.Value = deleteStartDesc with { length = resizeLength};
-
                     // Create new
                     var newLength = deleteStartDesc.length - length - internalOffset;
-                    var addOffset = addBuffer.Append(GetBuffer(deleteStartDesc.addBuffer).GetString(internalOffset + length, newLength));
-                    var newDesc = new Descriptor(true, addOffset, newLength);
-                    _pieceTable.AddAfter(deleteStartDescNode, newDesc);
+                    var addOffset = addBuffer.Append(GetBuffer(deleteStartDesc).GetString(internalOffset + length, newLength));
+                    var newDesc = new Descriptor(BufferType.AddBuffer, addOffset, newLength);
+                    pieceTable.AddAfter(deleteStartDesc, newDesc);
+
+                    // Resize original
+                    var resizeLength = internalOffset;
+                    pieceTable.Replace(deleteStartDesc, deleteStartDesc with { length = resizeLength});
                 }
             }
             else
@@ -170,9 +162,9 @@ namespace Bluetype.Document
             // Initialise
             fileBuffer = new ReadOnlyBuffer(data);
             addBuffer = new AppendBuffer();
-            _pieceTable = new();
+            pieceTable = new();
 
-            _pieceTable.AddFirst(new Descriptor(false, 0, data.Length));
+            pieceTable.AddFirst(new Descriptor(BufferType.FileBuffer, 0, data.Length));
         }
 
         public static Document New() => new Document(string.Empty);

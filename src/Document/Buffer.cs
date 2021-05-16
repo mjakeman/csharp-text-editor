@@ -7,7 +7,7 @@ namespace Bluetype.Document
 {
     public abstract class Buffer
     {
-        protected string _data;
+        protected string _data = string.Empty;
 
         public string GetString(int index, int length)
             => _data.Substring(index, length);
