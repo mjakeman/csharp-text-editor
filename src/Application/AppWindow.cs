@@ -11,8 +11,8 @@ namespace Bluetype.Application
 
         private Box contentBox;
         private Entry insertEntry;
-        private Label label;
         private SpinButton spinButton;
+        private DocumentView documentView;
 
         public Document Document { get; set; }
 
@@ -33,9 +33,18 @@ namespace Bluetype.Application
             contentBox = Box.New(Orientation.Vertical, 0);
             this.Child = contentBox;
 
-            label = Label.New(string.Empty);
-            label.SetSingleLineMode(false);
-            contentBox.PackStart(label, true, true, 0);
+            // Start by creating a document
+            Document = Document.NewFromString("The quick brown fox jumps over the lazy dog.");
+            documentView = new DocumentView(Document);
+            contentBox.PackStart(documentView, true, true, 0);
+            // cachedDocContents = Document.GetContents();
+            // label.SetText(cachedDocContents);
+            // UpdateCursor();
+
+            // label = Label.New(string.Empty);
+            // label.SetSingleLineMode(false);
+            // var docView = new DocumentView();
+            // contentBox.PackStart(label, true, true, 0);
 
             var hbox = Box.New(Orientation.Horizontal, 0);
             contentBox.PackEnd(hbox, false, false, 0);
@@ -60,12 +69,6 @@ namespace Bluetype.Application
             deleteButton.OnClicked += Delete;
             hbox.PackEnd(deleteButton, false, false, 0);
 
-            // Start by creating a document
-            Document = Document.NewFromString("The quick brown fox jumps over the lazy dog.");
-            cachedDocContents = Document.GetContents();
-            label.SetText(cachedDocContents);
-            UpdateCursor();
-
             // Set visible
             headerBar.ShowAll();
             contentBox.ShowAll();
@@ -73,8 +76,8 @@ namespace Bluetype.Application
 
         void UpdateCursor()
         {
-            var value = Math.Clamp((int)spinButton.GetValue(), 0, cachedDocContents.Length);
-            label.SetText(cachedDocContents.Insert(value, "|"));
+            var value = Math.Clamp((int)spinButton.GetValue(), 0, Int32.MaxValue-1);
+            documentView.SetCursorIndex(value);
         }
 
         void Insert(Button button, EventArgs args)
@@ -85,22 +88,12 @@ namespace Bluetype.Application
 
             // Move cursor to end of insertion
             spinButton.Value += text.Length;
-
-            // Update label
-            cachedDocContents = Document.GetContents();
-            label.SetText(cachedDocContents);
-            UpdateCursor();
         }
 
         void Delete(Button button, EventArgs args)
         {
             var index = (int)spinButton.GetValue();
             Document.Delete(index, 1);
-            
-            // Update label
-            cachedDocContents = Document.GetContents();
-            label.SetText(cachedDocContents);
-            UpdateCursor();
         }
     }
 }

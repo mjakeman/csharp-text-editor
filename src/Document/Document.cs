@@ -16,8 +16,12 @@ namespace Bluetype.Document
         // This paper demonstrates the piece-table based data structure used to store the
         // document's text and subsequent modifications.
 
-        private PieceTable pieceTable;
+        public IEnumerable<Span> Contents => pieceTable;
+        
+        public event EventHandler DocumentChanged;
 
+
+        private PieceTable pieceTable;
         private ReadOnlyBuffer fileBuffer;
         private AppendBuffer addBuffer;
 
@@ -46,14 +50,15 @@ namespace Bluetype.Document
                 ? (Buffer)addBuffer
                 : (Buffer)fileBuffer;
 
-        private string DescriptorToString(Span span)
+        public string SpanToString(Span span)
             => GetBuffer(span).GetString(span.offset, span.length);
 
         public string GetContents()
         {
             var builder = new StringBuilder();
+
             foreach (Span piece in pieceTable)
-                builder.Append(DescriptorToString(piece));
+                builder.Append(SpanToString(piece));
 
             return builder.ToString();
         }
@@ -84,6 +89,7 @@ namespace Bluetype.Document
             if (currentSpan == null)
             {
                 pieceTable.AddLast(insertSpan);
+                DocumentChanged(this, EventArgs.Empty);
                 return;
             }
 
@@ -92,6 +98,7 @@ namespace Bluetype.Document
             else if (index - baseIndex == 0)
             {
                 pieceTable.AddBefore(currentSpan, insertSpan);
+                DocumentChanged(this, EventArgs.Empty);
                 return;
             }
 
@@ -116,6 +123,8 @@ namespace Bluetype.Document
                 pieceTable.AddAfter(currentSpan, endSpan);
                 pieceTable.AddAfter(currentSpan, insertSpan);
                 pieceTable.Replace(currentSpan, startSpan);
+
+                DocumentChanged(this, EventArgs.Empty);
             }
         }
 
@@ -158,6 +167,9 @@ namespace Bluetype.Document
                 // Complex case - not supported yet
                 throw new NotImplementedException("Cannot delete across piece boundaries yet");
             }
+
+            // Emit document-changed event
+            DocumentChanged(this, EventArgs.Empty);
         }
 
         private Document(string data)
