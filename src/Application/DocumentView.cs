@@ -3,6 +3,9 @@ using System.Text;
 using System.Diagnostics;
 using Gtk;
 
+using cairo;
+using Pango;
+
 namespace Bluetype.Application
 {
     using Document;
@@ -15,12 +18,15 @@ namespace Bluetype.Application
         private string cachedText;
 
         private Label textLayout; // <-- replace with something more sophisticated
+        // private DrawingArea area;
 
         public DocumentView(Document document)
         {
             textLayout = Label.New(string.Empty);
+            // area = DrawingArea.New();
+            // area.OnDraw += Render();
             Child = textLayout;
-            SetDocument(document);
+            SetDocument(document);            
 
             ShowAll();
         }
@@ -72,6 +78,16 @@ namespace Bluetype.Application
         private void Redraw()
         {
             textLayout.LabelProp = cachedText.Insert(cursorIndex, "|");
+            // area.QueueDraw();
         }
+
+        // private void Render(object sender, DrawingArea.DrawSignalArgs e)
+        // {
+        //     Debug.Assert(area == sender);
+
+        //     Context cr = e.Cr;
+            
+            
+        // }
     }
 }
