@@ -63,8 +63,8 @@ namespace Bluetype.Application
             var builder = new StringBuilder();
 
             // Assemble the document
-            foreach (Span textSpan in doc.Contents)
-                builder.Append(doc.SpanToString(textSpan));
+            foreach (Node textSpan in doc.Contents)
+                builder.Append(doc.RenderNode(textSpan));
 
             cachedText = builder.ToString();
         }

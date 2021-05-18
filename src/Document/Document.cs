@@ -16,7 +16,7 @@ namespace Bluetype.Document
         // This paper demonstrates the piece-table based data structure used to store the
         // document's text and subsequent modifications.
 
-        public IEnumerable<Span> Contents => pieceTable;
+        public IEnumerable<Node> Contents => pieceTable;
         
         public event EventHandler DocumentChanged;
 
@@ -25,14 +25,14 @@ namespace Bluetype.Document
         private ReadOnlyBuffer fileBuffer;
         private AppendBuffer addBuffer;
 
-        private (Span desc, int baseIndex) FromIndex(int index)
+        private (Node desc, int baseIndex) FromIndex(int index)
         {
             if (index < 0)
                 throw new ArgumentOutOfRangeException();
 
             var curIndex = 0;
 
-            foreach (Span span in pieceTable)
+            foreach (Node span in pieceTable)
             {
                 curIndex += span.length;
 
@@ -45,28 +45,28 @@ namespace Bluetype.Document
             return (null, -1); // throw new IndexOutOfRangeException();
         }
 
-        private Buffer GetBuffer(Span span)
-            => span.dest == BufferType.AddBuffer
+        private Buffer GetBufferForNode(Node span)
+            => span.location == BufferType.Add
                 ? (Buffer)addBuffer
                 : (Buffer)fileBuffer;
 
-        public string SpanToString(Span span)
-            => GetBuffer(span).GetString(span.offset, span.length);
+        public string RenderNode(Node span)
+            => GetBufferForNode(span).GetString(span.offset, span.length);
 
         public string GetContents()
         {
             var builder = new StringBuilder();
 
-            foreach (Span piece in pieceTable)
-                builder.Append(SpanToString(piece));
+            foreach (Node piece in pieceTable)
+                builder.Append(RenderNode(piece));
 
             return builder.ToString();
         }
 
-        private Span CreateSpan(string text)
+        private Node CreateSpan(string text)
         {
             var index = addBuffer.Append(text);
-            return new Span(BufferType.AddBuffer, index, text.Length);
+            return new Node(BufferType.Add, index, text.Length);
         }
 
         public void Insert(int index, string text)
@@ -153,8 +153,8 @@ namespace Bluetype.Document
 
                     // Create new
                     var newLength = deleteStartDesc.length - length - internalOffset;
-                    var addOffset = addBuffer.Append(GetBuffer(deleteStartDesc).GetString(internalOffset + length, newLength));
-                    var newDesc = new Span(BufferType.AddBuffer, addOffset, newLength);
+                    var addOffset = addBuffer.Append(GetBufferForNode(deleteStartDesc).GetString(internalOffset + length, newLength));
+                    var newDesc = new Node(BufferType.Add, addOffset, newLength);
                     pieceTable.AddAfter(deleteStartDesc, newDesc);
 
                     // Resize original
@@ -179,7 +179,7 @@ namespace Bluetype.Document
             addBuffer = new AppendBuffer();
             pieceTable = new();
 
-            pieceTable.AddFirst(new Span(BufferType.FileBuffer, 0, data.Length));
+            pieceTable.AddFirst(new Node(BufferType.File, 0, data.Length));
         }
 
         public static Document New() => new Document(string.Empty);
