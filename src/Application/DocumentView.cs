@@ -84,7 +84,23 @@ namespace Bluetype.Application
         private void OnKeydown(object sender, KeyPressEventSignalArgs e)
         {
             Console.WriteLine("Keydown " + e.@event.Keyval);
-            context.FilterKeypress(e.@event); // Check result?
+
+            var keyVal = e.@event.Keyval;
+
+            if (keyVal == Gdk.Constants.KEY_Left)
+            {
+                cursorIndex = Math.Clamp(cursorIndex - 1, 0, cachedText.Length);
+                Redraw();
+            }
+            else if (keyVal == Gdk.Constants.KEY_Right)
+            {
+                cursorIndex = Math.Clamp(cursorIndex + 1, 0, cachedText.Length);
+                Redraw();
+            }
+            else if (keyVal == Gdk.Constants.KEY_BackSpace)
+                doc.Delete(Math.Clamp(cursorIndex - 1, 0, cachedText.Length), 1);
+            else
+                context.FilterKeypress(e.@event); // Check result?
         }
 
         private void OnEnterText(object sender, IMContext.CommitSignalArgs e)
@@ -115,9 +131,13 @@ namespace Bluetype.Application
             Debug.Assert(area == sender);
 
             int xDist = 30;
-            int yDist = 50;
+            int yDist = 100;
 
             cairo.Context cr = e.Cr;
+            cr.MoveTo(xDist, 30);
+            cr.ShowText("This sample uses Cairo and a Gtk.DrawingArea to create a simple 'TextView' clone.");
+            cr.MoveTo(xDist, 50);
+            cr.ShowText("Use the LEFT and RIGHT arrow keys to navigate. Press BACKSPACE to delete.");
             cr.SetFontSize(16);
             
             cr.TextExtents(cachedText, out TextExtents lineExtents);
