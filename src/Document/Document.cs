@@ -18,7 +18,7 @@ namespace Bluetype.Document
 
         public IEnumerable<Node> Contents => pieceTable;
         
-        public event EventHandler DocumentChanged;
+        public event EventHandler DocumentChanged = default!;
 
 
         private PieceTable pieceTable;
@@ -47,8 +47,8 @@ namespace Bluetype.Document
 
         private Buffer GetBufferForNode(Node span)
             => span.location == BufferType.Add
-                ? (Buffer)addBuffer
-                : (Buffer)fileBuffer;
+                ? addBuffer
+                : fileBuffer;
 
         public string RenderNode(Node span)
             => GetBufferForNode(span).GetString(span.offset, span.length);
@@ -94,8 +94,8 @@ namespace Bluetype.Document
             }
 
             // Case 2: If we are at the start boundary, we can simply
-            // insert at the beginning and return.
-            else if (index - baseIndex == 0)
+            // insert at the beginning and return. // TODO: Multiple insertions
+            if (index - baseIndex == 0)
             {
                 pieceTable.AddBefore(currentSpan, insertSpan);
                 DocumentChanged(this, EventArgs.Empty);
@@ -105,27 +105,25 @@ namespace Bluetype.Document
             // Case 3: We split the current span into three. The contents of the
             // span up to the insertion point, the insertion itself, and
             // the remainder of the span after the insertion.
-            else
-            {
-                // Find the index at which to split, relative to the
-                // start of the current piece.
-                var insertionOffset = index - baseIndex;
+            
+            // Find the index at which to split, relative to the
+            // start of the current piece.
+            var insertionOffset = index - baseIndex;
 
-                // We have one piece |current|
-                var startLength = insertionOffset;
-                var endLength = currentSpan.length - startLength;
+            // We have one piece |current|
+            var startLength = insertionOffset;
+            var endLength = currentSpan.length - startLength;
 
-                // Split into |start| |end|
-                var startSpan = currentSpan with {length = startLength};
-                var endSpan = currentSpan with {length = endLength, offset = startLength};
+            // Split into |start| |end|
+            var startSpan = currentSpan with {length = startLength};
+            var endSpan = currentSpan with {length = endLength, offset = (currentSpan.offset + insertionOffset)};
 
-                // Insert so we have three pieces: |start| |insertion| |end|
-                pieceTable.AddAfter(currentSpan, endSpan);
-                pieceTable.AddAfter(currentSpan, insertSpan);
-                pieceTable.Replace(currentSpan, startSpan);
+            // Insert so we have three pieces: |start| |insertion| |end|
+            pieceTable.AddAfter(currentSpan, endSpan);
+            pieceTable.AddAfter(currentSpan, insertSpan);
+            pieceTable.Replace(currentSpan, startSpan);
 
-                DocumentChanged(this, EventArgs.Empty);
-            }
+            DocumentChanged(this, EventArgs.Empty);
         }
 
         public void Delete(int index, int length)
