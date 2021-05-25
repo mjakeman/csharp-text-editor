@@ -128,7 +128,6 @@ namespace Bluetype.Document
 
         public void Delete(int index, int length)
         {
-
             var (deleteStartDesc, deleteStartNodeBaseIndex) = FromIndex(index);
 
             // Cannot delete from the end of the sequence

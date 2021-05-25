@@ -9,7 +9,7 @@ namespace Bluetype.Application
     {
         const string WindowTitle = "Editor";
 
-        private Box contentBox;
+        private Paned contentPaned;
         private Entry insertEntry;
         private SpinButton spinButton;
         private DocumentView documentView;
@@ -30,48 +30,23 @@ namespace Bluetype.Application
             this.SetTitlebar(headerBar);
             this.SetDecorated(true);
 
-            contentBox = Box.New(Orientation.Vertical, 0);
-            this.Child = contentBox;
+            contentPaned = Paned.New(Orientation.Vertical);
+            this.Child = contentPaned;
 
             // Start by creating a document
             Document = Document.NewFromString("The quick brown fox jumps over the lazy dog.");
             documentView = new DocumentView(Document);
-            contentBox.PackStart(documentView, true, true, 0);
-            // cachedDocContents = Document.GetContents();
-            // label.SetText(cachedDocContents);
-            // UpdateCursor();
 
-            // label = Label.New(string.Empty);
-            // label.SetSingleLineMode(false);
-            // var docView = new DocumentView();
-            // contentBox.PackStart(label, true, true, 0);
-
-            var hbox = Box.New(Orientation.Horizontal, 0);
-            contentBox.PackEnd(hbox, false, false, 0);
-
-            // Text to insert
-            insertEntry = Entry.New();
-            hbox.PackStart(insertEntry, true, true, 0);
-
-            // Index to insert
-            spinButton = SpinButton.NewWithRange(0, Int32.MaxValue, 1);
-            spinButton.OnValueChanged += (_,_) => UpdateCursor();
-            spinButton.SetDigits(0);
-            hbox.PackStart(spinButton, false, false, 0);
-
-            var insertButton = new Button("Insert");
-            insertButton.Label = "Insert"; // <-- TODO: While construct args are broken
-            insertButton.OnClicked += Insert;
-            hbox.PackEnd(insertButton, false, false, 0);
-
-            var deleteButton = new Button("Delete");
-            deleteButton.Label = "Delete"; // <-- TODO: While construct args are broken
-            deleteButton.OnClicked += Delete;
-            hbox.PackEnd(deleteButton, false, false, 0);
-
+            var display = new PieceTableDisplay(Document);
+            
+            // Paned
+            contentPaned.Add1(documentView);
+            contentPaned.Add2(display);
+            contentPaned.Position = 400;
+            
             // Set visible
             headerBar.ShowAll();
-            contentBox.ShowAll();
+            contentPaned.ShowAll();
         }
 
         void UpdateCursor()

@@ -134,10 +134,20 @@ namespace Bluetype.Application
             int yDist = 100;
 
             cairo.Context cr = e.Cr;
+            
+            // Fill background
+            cr.SetSourceRgba(1,1,1,1);
+            cr.Rectangle(0, 0, GetAllocatedWidth(), GetAllocatedHeight());
+            cr.Fill();
+
+            // Write Info Text
+            cr.SetSourceRgba(0,0,0,1.0);
             cr.MoveTo(xDist, 30);
             cr.ShowText("This sample uses Cairo and a Gtk.DrawingArea to create a simple 'TextView' clone.");
             cr.MoveTo(xDist, 50);
             cr.ShowText("Use the LEFT and RIGHT arrow keys to navigate. Press BACKSPACE to delete.");
+            
+            // Draw Cursor
             cr.SetFontSize(16);
             
             cr.TextExtents(cachedText, out TextExtents lineExtents);
@@ -152,6 +162,7 @@ namespace Bluetype.Application
             cr.Rectangle(xDist + cursorExtents.xAdvance - 0.5, yDist + fontExtents.Descent, 1, -(fontExtents.Descent + fontExtents.Ascent));
             cr.Fill();
             
+            // Draw Text from Buffer
             cr.MoveTo(xDist, yDist);
             cr.SetSourceRgba(0, 0, 0, 1.0);
             cr.ShowText(cachedText);
