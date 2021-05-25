@@ -7,13 +7,23 @@ namespace Bluetype.Document
 {
     public enum BufferType : byte
     {
+        // For guard nodes
+        None,
+        
+        // Original file buffer
         File,
+        
+        // Append-only add buffer
         Add
     };
 
     // Also called: Span, Piece, Descriptor, etc
-    public record Node
+    public class Node
     {
+        internal Node? Next { get; set; }
+        
+        internal Node? Prev { get; set; }
+        
         internal BufferType location { get; init; }
         internal int offset { get; init; }
         internal int length { get; init; }
@@ -24,5 +34,8 @@ namespace Bluetype.Document
             this.offset = offset;
             this.length = length;
         }
+
+        internal static Node CreateGuardNode()
+            => new Node(BufferType.None, 0, 0);
     }
 }

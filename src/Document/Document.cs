@@ -115,8 +115,8 @@ namespace Bluetype.Document
             var endLength = currentSpan.length - startLength;
 
             // Split into |start| |end|
-            var startSpan = currentSpan with {length = startLength};
-            var endSpan = currentSpan with {length = endLength, offset = (currentSpan.offset + insertionOffset)};
+            var startSpan = new Node(currentSpan.location, currentSpan.offset, startLength);
+            var endSpan = new Node(currentSpan.location, currentSpan.offset + insertionOffset, endLength);
 
             // Insert so we have three pieces: |start| |insertion| |end|
             pieceTable.AddAfter(currentSpan, endSpan);
@@ -142,7 +142,7 @@ namespace Bluetype.Document
                     // Simple case
                     var newLength = (deleteStartDesc.length - length);
                     var newOffset = deleteStartDesc.offset + length;
-                    pieceTable.Replace(deleteStartDesc, deleteStartDesc with { offset = newOffset, length = newLength});
+                    pieceTable.Replace(deleteStartDesc, new Node(deleteStartDesc.location, newOffset, newLength));
                 }
                 else
                 {
@@ -156,7 +156,7 @@ namespace Bluetype.Document
 
                     // Resize original
                     var resizeLength = internalOffset;
-                    pieceTable.Replace(deleteStartDesc, deleteStartDesc with { length = resizeLength});
+                    pieceTable.Replace(deleteStartDesc, new Node(deleteStartDesc.location, deleteStartDesc.offset, resizeLength));
                 }
             }
             else
