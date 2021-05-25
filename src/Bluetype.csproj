@@ -11,4 +11,8 @@
     <TargetFramework>net5.0</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="logo.svg" />
+  </ItemGroup>
+
 </Project>

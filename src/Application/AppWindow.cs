@@ -27,7 +27,21 @@ namespace Bluetype.Application
             headerBar.Title = WindowTitle;
             this.SetTitlebar(headerBar);
             this.SetDecorated(true);
+            
+            // About Dialog Button
+            var aboutButton = new Button("About");
+            aboutButton.Image = Image.NewFromIconName("dialog-information-symbolic", IconSize.Button);
+            aboutButton.AlwaysShowImage = true;
+            aboutButton.OnClicked += (_, _) =>
+            {
+                var dlg = new AboutDialog();
+                dlg.SetTransientFor(this);
+                dlg.SetModal(true);
+                dlg.Present();
+            };
+            headerBar.PackEnd(aboutButton);
 
+            // Main Content Pane
             contentPaned = Paned.New(Orientation.Vertical);
             this.Child = contentPaned;
 
