@@ -114,10 +114,6 @@ namespace Bluetype.Document
 
             before!.Next = replace;
             after!.Prev = replace;
-
-            // Clear
-            old.Next = null;
-            old.Prev = null;
         }
 
         public void Remove(Node remove)
@@ -131,10 +127,6 @@ namespace Bluetype.Document
 
             before!.Next = after;
             after!.Prev = before;
-
-            // Clear
-            remove.Next = null;
-            remove.Prev = null;
         }
 
         // Implement IEnumerable
