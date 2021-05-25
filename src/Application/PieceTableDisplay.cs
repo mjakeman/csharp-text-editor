@@ -25,12 +25,10 @@ namespace Bluetype.Application
             Context cr = args.Cr;
             
             double xPos = 40;
-            double yPos = 60;
+            double yPos = 120;
             int padding = 5;
-            
-            cr.MoveTo(xPos, 30);
-            cr.SetFontSize(16);
-            cr.ShowText("Piece Table Visualisation");
+
+            RenderHeading(cr, xPos);
 
             cr.FontExtents(out FontExtents fontExtents);
             cr.SetFontSize(14);
@@ -65,6 +63,33 @@ namespace Bluetype.Application
                 // Move to next position - TODO: line wrap?
                 position += length + padding;
             }
+        }
+        
+        private void RenderHeading(Context cr, double xPos)
+        {
+            cr.MoveTo(xPos, 30);
+            cr.SetFontSize(16);
+            cr.ShowText("Piece Table Visualisation");
+            
+            // Red Square
+            cr.SetSourceRgba(1,0,0,1);
+            cr.Rectangle(xPos, 50, 10, -10);
+            cr.Fill();
+            
+            // Blue Square
+            cr.SetSourceRgba(0,0,1,1);
+            cr.Rectangle(xPos, 70, 10, -10);
+            cr.Fill();
+            
+            // Labels
+            cr.SetFontSize(10);
+            cr.SetSourceRgba(0,0,0,1);
+            
+            cr.MoveTo(xPos + 12, 50);
+            cr.ShowText("File Buffer");
+            
+            cr.MoveTo(xPos + 12, 70);
+            cr.ShowText("Add Buffer");
         }
     }
 }

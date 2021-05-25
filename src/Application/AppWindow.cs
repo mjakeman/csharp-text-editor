@@ -16,8 +16,6 @@ namespace Bluetype.Application
 
         public Document Document { get; set; }
 
-        string cachedDocContents = string.Empty;
-
         public AppWindow()
         {
             this.DefaultWidth = 800;
