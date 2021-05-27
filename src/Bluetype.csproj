@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="logo.svg" />
+    <EmbeddedResource Include="bluetype.png" />
   </ItemGroup>
 
 </Project>

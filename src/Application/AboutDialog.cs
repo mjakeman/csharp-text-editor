@@ -13,7 +13,7 @@ namespace Bluetype.Application
             this.Comments = "Bluetype is a word processor for writing long-form documents.";
             this.Copyright = "© Matthew Jakeman 2021-present";
             this.License = "Mozilla Public License 2.0";
-            this.Logo = LoadFromResource("Bluetype.logo.svg");
+            this.Logo = LoadFromResource("Bluetype.bluetype.png");
             this.Version = "0.1.0";
             this.Website = "https://www.mattjakeman.com";
             this.LicenseType = Gtk.License.Custom;
